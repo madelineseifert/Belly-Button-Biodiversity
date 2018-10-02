@@ -110,7 +110,7 @@ def samples(sample):
 
     # make sure sample exists in data or throw error
     if sample not in df.columns:
-        return jsonify(f"Error! Sample: {sample} Not Found!"), 400
+        return jsonify(f"error, sample: {sample} not found"), 400
 
     # return sample values greater than 1
     df = df[df[sample] > 1]
