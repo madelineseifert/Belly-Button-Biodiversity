@@ -1,4 +1,4 @@
-function top10(sorted_id, unsortedArray){
+function topIDS(sorted_id, unsortedArray){
     var sorted = []
     for(var i=0; i < sorted_id.length; i++){
         sorted.push(unsortedArray[sorted_id[i]])}
@@ -6,15 +6,15 @@ function top10(sorted_id, unsortedArray){
 
 function buildMetadata(sample) {
     // buildGauge(data.WFREQ);
-    var metaElement = d3.select("#sample-metadata")
+    var metaDATA = d3.select("#sample-metadata")
     var washGauge = d3.select("#gauge")
-    metaElement.html("")
+    metaDATA.html("")
     
     
     var url = `/metadata/${sample}`
     d3.json(url).then(function(response) {
         Object.entries(response).forEach(([key, value]) => {
-        metaElement.append("p").text(`${key}: ${value}`); })
+        metaDATA.append("p").text(`${key}: ${value}`); })
         
         var level = response['WFREQ'];
         
@@ -36,7 +36,7 @@ function buildMetadata(sample) {
            x: [0], y:[0],
             marker: {size: 28, color:'850000'},
             showlegend: false,
-            name: 'Wash Frequency',
+            name: 'Frequency of belly button washing',
             text: level,
             hoverinfo: 'text+name'},
           { values: [10, 10, 10, 10, 10, 10, 10, 10, 10, 90],
@@ -45,9 +45,9 @@ function buildMetadata(sample) {
           textinfo: 'text',
           textposition:'inside',      
           marker: {
-          colors:['rgba(132, 181, 137, .9)', 'rgba(141, 191, 145, .9)', 'rgba(138, 192, 134, .9)', 
-                      'rgba(183, 205, 143, .9)', 'rgba(213, 229, 153, .9)', 'rgba(229, 232, 176, .9)',
-                  'rgba(233, 230, 201, .9)', 'rgba(244, 241, 228, .9)', 'rgba(248, 243, 236, .9)',
+          colors:['rgba(0, 115, 0, .8)', 'rgba(141, 191, 145, .8)', 'rgba(138, 192, 134, .8)', 
+                      'rgba(183, 205, 143, .8)', 'rgba(213, 229, 153, .8)', 'rgba(229, 232, 176, .8)',
+                  'rgba(233, 230, 201, .8)', 'rgba(244, 241, 228, .8)', 'rgba(248, 243, 236, .8)',
                   'rgba(255, 255, 255, 0)']},
           labels: ['8-9', '7-8', '6-7', '5-6', '4-5', '3-4', '2-3', '1-2', '0-1', ''],
           hoverinfo: 'text',
@@ -91,9 +91,9 @@ function buildCharts(sample) {
 
         var trace1 = {
         type: "pie",
-        values: top10(sorted_id, values),
-        hovertext: top10(sorted_id, response.otu_labels),
-        labels: top10(sorted_id, response.otu_ids),
+        values: topIDS(sorted_id, values),
+        hovertext: topIDS(sorted_id, response.otu_labels),
+        labels: topIDS(sorted_id, response.otu_ids),
         hoverinfo: 'text',
         };
     
@@ -117,8 +117,8 @@ function buildCharts(sample) {
     
     var layout2 = {
         title: "Bubble Plot",
-        xaxis: {title: "otu_ids"},
-        yaxis: {title: "sample values"},
+        xaxis: {title: "OTU IDs"},
+        yaxis: {title: "Sample Values"},
         hovermode: 'closest'
     };
 
