@@ -1,113 +1,158 @@
+function top10(sorted_id, unsortedArray){
+    var sorted = []
+    for(var i=0; i < sorted_id.length; i++){
+        sorted.push(unsortedArray[sorted_id[i]])}
+    return sorted.slice(0,10)}
 
-// populates the dropdown menu items 
-function initDropdown(){
-    var url = "/names";
-    Plotly.d3.json(url, function(error, response) {
-        if (error) return console.warn(error);
-        for (var i=0; i<response.length; i++) {
-            var sampleMenu = d3.select('#samples')
-                .append("option:option")
-                .attr("value", response[i])
-                .text(response[i])
-            }
-    });
-};
+function buildMetadata(sample) {
+    // buildGauge(data.WFREQ);
+    var metaElement = d3.select("#sample-metadata")
+    var washGauge = d3.select("#gauge")
+    metaElement.html("")
+    
+    
+    var url = `/metadata/${sample}`
+    d3.json(url).then(function(response) {
+        Object.entries(response).forEach(([key, value]) => {
+        metaElement.append("p").text(`${key}: ${value}`); })
+        
+        var level = response['WFREQ'];
+        
 
+        // trig to calculate meter point
+        var degrees = 180 - level*20,
+             radius = .8;
+        var radians = degrees * Math.PI / 180;
+        var x = radius * Math.cos(radians);
+        var y = radius * Math.sin(radians);
+        var mainPath = 'M -.0 -0.025 L .0 0.025 L ',
+             pathX = String(x),
+             space = ' ',
+             pathY = String(y),
+             pathEnd = ' Z';
+        var path = mainPath.concat(pathX,space,pathY,pathEnd);
 
-// create pie chart for data
+        var data = [{ type: 'scatter',
+           x: [0], y:[0],
+            marker: {size: 28, color:'850000'},
+            showlegend: false,
+            name: 'Wash Frequency',
+            text: level,
+            hoverinfo: 'text+name'},
+          { values: [10, 10, 10, 10, 10, 10, 10, 10, 10, 90],
+          rotation: 90,
+          text: ['8-9', '7-8', '6-7', '5-6', '4-5', '3-4', '2-3', '1-2', '0-1'],
+          textinfo: 'text',
+          textposition:'inside',      
+          marker: {
+          colors:['rgba(132, 181, 137, .9)', 'rgba(141, 191, 145, .9)', 'rgba(138, 192, 134, .9)', 
+                      'rgba(183, 205, 143, .9)', 'rgba(213, 229, 153, .9)', 'rgba(229, 232, 176, .9)',
+                  'rgba(233, 230, 201, .9)', 'rgba(244, 241, 228, .9)', 'rgba(248, 243, 236, .9)',
+                  'rgba(255, 255, 255, 0)']},
+          labels: ['8-9', '7-8', '6-7', '5-6', '4-5', '3-4', '2-3', '1-2', '0-1', ''],
+          hoverinfo: 'text',
+          hole: .5,
+          type: 'pie',
+          showlegend: false
+        }];
 
-function buildPie(sample){
-    var values = [];
-    var labels = [];
-    var names = [];
-    url = "/samples/".concat(sample);
-    Plotly.d3.json(url, function(error, response) {
-      if (error) return console.warn(error);
-      for (var i=0; i<10; i++){
-        values.push(+response[0].sample_values[i]);
-        labels.push(+response[0].otu_ids[i]);
-      };
-      Plotly.d3.json('/otu', function(error, response) {
-          if (error) return console.warn(error);
-          for (var j=0; j<10; j++){
-            names.push(response[labels[j]]);
-          }
-          data = [{values, labels, hovertext:names, type:'pie'}];
-          var layout = { height: 400, width:400, title:'<b>Top 10 Residents of Belly Button</b>'};
-          Plotly.newPlot("pie", data, layout);
-        })
-    })
-};
-
-// create the bubble chart
-
-function buildBubble(sample){
-    var all_values = [];
-    var all_ids = [];
-    var names = [];
-    url = "/samples/".concat(sample);
-    Plotly.d3.json(url, function(error, response) {
-      if (error) return console.warn(error);
-      
-      for (i=0; i<30; i++){
-        all_values.push(response[0].sample_values[i]);
-        all_ids.push(response[0].otu_ids[i]);
-      }
-      Plotly.d3.json('/otu', function(error, response) {
-        if (error) return console.warn(error);
-        for (var j=0; j<30; j++){
-          names.push(response[all_ids[j]]);
-        }
-        var bubble_trace = {
-            x: all_ids,
-            y: all_values,
-            hovertext: names,
-            mode: 'markers',
-            marker: {
-                size: all_values
-            }
+        var layout = {
+          shapes:[{
+              type: 'path',
+              path: path,
+              fillcolor: '850000',
+              line: {
+                color: '850000'
+              }
+            }],
+          title: '<b>Belly Button Washing Frequency</b> <br> Scrubs Per Week',
+          height: 500,
+          width: 500,
+          xaxis: {zeroline:false, showticklabels:false,
+                     showgrid: false, range: [-1, 1]},
+          yaxis: {zeroline:false, showticklabels:false,
+                     showgrid: false, range: [-1, 1]}
         };
-        var bubble_data = [bubble_trace];
-        var bubble_layout = {
-            title: '<b>Bubble Chart</b><br>Top 30 samples',
-            height: 500,
-            width: 1000
-        };
-        Plotly.newPlot("bubble", bubble_data, bubble_layout);   
-      })
+
+        Plotly.newPlot('gauge', data, layout);
+        
     })
-};
-
-//  populates sample metadata on the page.
-
-function initMetadata(sample){
-    url = "/metadata/".concat(sample);
-    Plotly.d3.json(url, function(error, response) {
-        if (error) return console.warn(error);
-        var age = response.AGE;
-        var bbtype = response.BBTYPE;
-        var gender = response.GENDER;
-        var ethnicity = response.ETHNICITY;
-        var location = response.LOCATION;
-        var sampleid = sample;
-        document.getElementById("metadata1").innerHTML = `AGE: ${age}`;
-        document.getElementById("metadata2").innerHTML = `BBTYPE: ${bbtype}`;
-        document.getElementById("metadata3").innerHTML = `GENDER: ${gender}`;
-        document.getElementById("metadata4").innerHTML = `ETHNICITY: ${ethnicity}`;
-        document.getElementById("metadata5").innerHTML = `LOCATION: ${location}`;
-        document.getElementById("metadata6").innerHTML = `SAMPLEID: ${sampleid}`;
-    });
+    
+    
 }
 
-// dropdown menu change
+function buildCharts(sample) {
 
-function optionChanged(sample){
-    initMetadata(sample);
-    buildPie(sample);
-    buildBubble(sample);
-};
-//set the default sample BB_940.
-initDropdown();
-initMetadata('BB_940');
-buildPie('BB_940');
-buildBubble('BB_940');
+    var url = `/samples/${sample}`
+    d3.json(url).then(function(response) {
+
+        var values = response.sample_values
+        var sorted_id = Array.from(Array(values.length).keys()).sort((a, b) => values[a] > values[b] ? -1 : (values[b] > values[a]) | 0)
+
+        var trace1 = {
+        type: "pie",
+        values: top10(sorted_id, values),
+        hovertext: top10(sorted_id, response.otu_labels),
+        labels: top10(sorted_id, response.otu_ids),
+        hoverinfo: 'text',
+        };
+    
+        var trace2 = {
+          x: response.otu_ids,
+          y: response.sample_values,
+          mode: "markers",
+          type: "scatter",
+          hovertext: response.otu_labels,
+          marker: {
+            color: response.otu_ids,
+            size: response.sample_values,
+            colorscale: "Earth"
+          },
+        };
+    
+    
+    var layout1 = {
+        title: "Pie Chart",
+    };
+    
+    var layout2 = {
+        title: "Bubble Plot",
+        xaxis: {title: "otu_ids"},
+        yaxis: {title: "sample values"},
+        hovermode: 'closest'
+    };
+
+    Plotly.newPlot("pie", [trace1], layout1);
+    Plotly.newPlot("bubble", [trace2], layout2);
+    
+})
+}
+
+function init() {
+  // Grab a reference to the dropdown select element
+  var selector = d3.select("#selDataset");
+
+  // Use the list of sample names to populate the select options
+  d3.json("/names").then((sampleNames) => {
+    sampleNames.forEach((sample) => {
+      selector
+        .append("option")
+        .text(sample)
+        .property("value", sample);
+    });
+
+    // Use the first sample from the list to build the initial plots
+    const firstBB = sampleNames[0];
+    buildCharts(firstBB);
+    buildMetadata(firstBB);
+  });
+}
+
+function optionChanged(changeBB) {
+  //get new data for dropdown menu selection
+  buildCharts(changeBB);
+  buildMetadata(changeBB);
+}
+
+// initialize dashboard
+init();

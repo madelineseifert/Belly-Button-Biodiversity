@@ -1,131 +1,101 @@
-# import necessary dependencies
-
-# Flask (Server)
-from flask import Flask, jsonify, render_template, request, flash, redirect
-
-# SQL Alchemy (ORM)
-import sqlalchemy
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, func, desc,select
+import os
 
 import pandas as pd
 import numpy as np
 
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
 
-
-# Database Setup
-
-engine = create_engine("sqlite:///DataSets/belly_button_biodiversity.sqlite")
-
-# reflect an existing database into a new model
-Base = automap_base()
-# reflect the tables
-Base.prepare(engine, reflect=True)
-
-# save references to the tables in database
-OTU = Base.classes.otu
-Samples = Base.classes.samples
-Samples_Metadata= Base.classes.samples_metadata
-
-
-session = Session(engine)
+from flask import Flask, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
 
-# Flask Routes
+#################################################
+# Database Setup
 #################################################
 
-#route("/")
-# dashboard home
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db/bellybutton.sqlite"
+db = SQLAlchemy(app)
+
+# reflect an existing database into a new model
+Base = automap_base()
+# reflect the tables
+Base.prepare(db.engine, reflect=True)
+
+# Save references to each table
+Samples_Metadata = Base.classes.sample_metadata
+Samples = Base.classes.samples
+
+
 @app.route("/")
 def index():
+    """Return the homepage."""
     return render_template("index.html")
 
-#route('/names')
-# returns a list of sample names
-@app.route('/names')
+
+@app.route("/names")
 def names():
-    sample = session.query(Samples).statement
-    df = pd.read_sql_query(sample, session.bind)
-    df.set_index('otu_id', inplace=True)
-        
-    return jsonify(list(df.columns))
+    """Return a list of sample names."""
 
-#route('/otu')
-@app.route('/otu')
-def otu():
-    results = session.query(OTU.lowest_taxonomic_unit_found).all()
+    # Use Pandas to perform the sql query
+    stmt = db.session.query(Samples).statement
+    df = pd.read_sql_query(stmt, db.session.bind)
 
-    # extract list of tuples to otu descriptions
-    otu_list = list(np.ravel(results))
-    return jsonify(otu_list)
+    # Return a list of the column names (sample names)
+    return jsonify(list(df.columns)[2:])
 
-#route('/metadata/<sample>')
 
-@app.route('/metadata/<sample>')
+@app.route("/metadata/<sample>")
 def sample_metadata(sample):
-    sel = [Samples_Metadata.SAMPLEID, Samples_Metadata.ETHNICITY,
-           Samples_Metadata.GENDER, Samples_Metadata.AGE,
-           Samples_Metadata.LOCATION, Samples_Metadata.BBTYPE]
+    """Return the MetaData for a given sample."""
+    sel = [
+        Samples_Metadata.sample,
+        Samples_Metadata.ETHNICITY,
+        Samples_Metadata.GENDER,
+        Samples_Metadata.AGE,
+        Samples_Metadata.LOCATION,
+        Samples_Metadata.BBTYPE,
+        Samples_Metadata.WFREQ,
+    ]
 
-    # strips "BB" prefix
-    results = session.query(*sel).\
-        filter(Samples_Metadata.SAMPLEID == sample[3:]).all()
+    results = db.session.query(*sel).filter(Samples_Metadata.sample == sample).all()
 
-    # dictionary for metadata information
+    # Create a dictionary entry for each row of metadata information
     sample_metadata = {}
     for result in results:
-        sample_metadata['SAMPLEID'] = result[0]
-        sample_metadata['ETHNICITY'] = result[1]
-        sample_metadata['GENDER'] = result[2]
-        sample_metadata['AGE'] = result[3]
-        sample_metadata['LOCATION'] = result[4]
-        sample_metadata['BBTYPE'] = result[5]
+        sample_metadata["sample"] = result[0]
+        sample_metadata["ETHNICITY"] = result[1]
+        sample_metadata["GENDER"] = result[2]
+        sample_metadata["AGE"] = result[3]
+        sample_metadata["LOCATION"] = result[4]
+        sample_metadata["BBTYPE"] = result[5]
+        sample_metadata["WFREQ"] = result[6]
 
-    return jsonify(sample_metadata) 
-  
-    
-#route('/wfreq/<sample>')
-
-@app.route('/wfreq/<sample>')
-def sample_wfreq(sample):
-
-    # strips the "BB" prefix
-    results = session.query(Samples_Metadata.WFREQ).\
-        filter(Samples_Metadata.SAMPLEID == sample[3:]).all()
-    wfreq = np.ravel(results)
-
-    # returns 1st value for belly button washing
-    return jsonify(int(wfreq[0]))
+    print(sample_metadata)
+    return jsonify(sample_metadata)
 
 
-#route('/samples/<sample>')
-
-@app.route('/samples/<sample>')
+@app.route("/samples/<sample>")
 def samples(sample):
-    stmt = session.query(Samples).statement
-    df = pd.read_sql_query(stmt, session.bind)
+    """Return `otu_ids`, `otu_labels`,and `sample_values`."""
+    stmt = db.session.query(Samples).statement
+    df = pd.read_sql_query(stmt, db.session.bind)
 
-    # make sure sample exists in data or throw error
-    if sample not in df.columns:
-        return jsonify(f"error, sample: {sample} not found"), 400
-
-    # return sample values greater than 1
-    df = df[df[sample] > 1]
-
-    # sort in descending order
-    df = df.sort_values(by=sample, ascending=0)
-
-    data = [{
-        "otu_ids": df[sample].index.values.tolist(),
-        "sample_values": df[sample].values.tolist()
-    }]
+    # Filter the data based on the sample number and
+    # only keep rows with values above 1
+    sample_data = df.loc[df[sample] > 1, ["otu_id", "otu_label", sample]]
+    # Format the data to send as json
+    data = {
+        "otu_ids": sample_data.otu_id.values.tolist(),
+        "sample_values": sample_data[sample].values.tolist(),
+        "otu_labels": sample_data.otu_label.tolist(),
+    }
     return jsonify(data)
 
-if __name__ == '__main__':
-    app.run(debug=True, port = 5005)
 
-
-
+if __name__ == "__main__":
+    app.run()
