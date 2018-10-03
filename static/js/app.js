@@ -37,6 +37,7 @@ function buildMetadata(sample) {
             marker: {size: 28, color:'850000'},
             showlegend: false,
             name: 'Frequency of belly button washing',
+            hoverinfo: 'text+name',
             text: level,
             hoverinfo: 'text+name'},
           { values: [10, 10, 10, 10, 10, 10, 10, 10, 10, 90],
@@ -45,9 +46,9 @@ function buildMetadata(sample) {
           textinfo: 'text',
           textposition:'inside',      
           marker: {
-          colors:['rgba(0, 115, 0, .8)', 'rgba(141, 191, 145, .8)', 'rgba(138, 192, 134, .8)', 
-                      'rgba(183, 205, 143, .8)', 'rgba(213, 229, 153, .8)', 'rgba(229, 232, 176, .8)',
-                  'rgba(233, 230, 201, .8)', 'rgba(244, 241, 228, .8)', 'rgba(248, 243, 236, .8)',
+          colors:['rgba(0, 115, 0, .9)', 'rgba(141, 191, 145, .9)', 'rgba(138, 192, 134, .9)', 
+                      'rgba(183, 205, 143, .9)', 'rgba(213, 229, 153, .9)', 'rgba(229, 232, 176, .9)',
+                  'rgba(233, 230, 201, .9)', 'rgba(244, 241, 228, .9)', 'rgba(248, 243, 236, .9)',
                   'rgba(255, 255, 255, 0)']},
           labels: ['8-9', '7-8', '6-7', '5-6', '4-5', '3-4', '2-3', '1-2', '0-1', ''],
           hoverinfo: 'text',
@@ -104,8 +105,8 @@ function buildCharts(sample) {
           type: "scatter",
           hovertext: response.otu_labels,
           marker: {
-            color: response.otu_ids,
             size: response.sample_values,
+            color: response.otu_ids,
             colorscale: "Earth"
           },
         };
