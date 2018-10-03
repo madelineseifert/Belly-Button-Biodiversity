@@ -130,20 +130,20 @@ function buildCharts(sample) {
 }
 
 function init() {
-  // Grab a reference to the dropdown select element
+  // reference to the dropdown select element
   var selector = d3.select("#selDataset");
 
-  // Use the list of sample names to populate the select options
-  d3.json("/names").then((sampleNames) => {
-    sampleNames.forEach((sample) => {
+  // sample names for dropdown options
+  d3.json("/names").then((sample_names) => {
+    sample_names.forEach((sample) => {
       selector
         .append("option")
         .text(sample)
         .property("value", sample);
     });
 
-    // Use the first sample from the list to build the initial plots
-    const firstBB = sampleNames[0];
+    // build default plots
+    const firstBB = sample_names[0];
     buildCharts(firstBB);
     buildMetadata(firstBB);
   });
